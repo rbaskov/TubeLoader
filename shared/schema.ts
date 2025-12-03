@@ -2,84 +2,80 @@ import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
-  jsonb,
-  pgTable,
+  sqliteTable,
   text,
-  timestamp,
-  varchar,
-} from "drizzle-orm/pg-core";
+} from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table for Replit Auth
-export const sessions = pgTable(
+// Session storage table for authentication
+export const sessions = sqliteTable(
   "sessions",
   {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
+    sid: text("sid").primaryKey(),
+    sess: text("sess").notNull(),
+    expire: text("expire").notNull(),
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
 // User storage table for authentication
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: varchar("username").unique(),
-  passwordHash: varchar("password_hash"),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  username: text("username").unique(),
+  passwordHash: text("password_hash"),
+  email: text("email").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
   isAdmin: integer("is_admin").default(0),
-  language: varchar("language").default("en"),
-  theme: varchar("theme").default("light"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  language: text("language").default("en"),
+  theme: text("theme").default("light"),
+  createdAt: text("created_at"),
+  updatedAt: text("updated_at"),
 });
 
 // User settings for external integrations
-export const userSettings = pgTable("user_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  synologyEndpoint: varchar("synology_endpoint"),
-  synologyUsername: varchar("synology_username"),
-  synologyPassword: varchar("synology_password"),
+export const userSettings = sqliteTable("user_settings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  synologyEndpoint: text("synology_endpoint"),
+  synologyUsername: text("synology_username"),
+  synologyPassword: text("synology_password"),
   autoUploadToNas: integer("auto_upload_to_nas").default(1),
   youtubeCookies: text("youtube_cookies"),
-  // Proxy settings for YouTube downloads
   proxyEnabled: integer("proxy_enabled").default(0),
-  proxyType: varchar("proxy_type").default("http"), // http, https, socks4, socks5
-  proxyHost: varchar("proxy_host"),
+  proxyType: text("proxy_type").default("http"),
+  proxyHost: text("proxy_host"),
   proxyPort: integer("proxy_port"),
-  proxyUsername: varchar("proxy_username"),
-  proxyPassword: varchar("proxy_password"),
-  telegramBotToken: varchar("telegram_bot_token"),
-  telegramChatId: varchar("telegram_chat_id"),
-  jellyfinServerUrl: varchar("jellyfin_server_url"),
-  jellyfinApiKey: varchar("jellyfin_api_key"),
-  jellyfinLibraryId: varchar("jellyfin_library_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  proxyUsername: text("proxy_username"),
+  proxyPassword: text("proxy_password"),
+  telegramBotToken: text("telegram_bot_token"),
+  telegramChatId: text("telegram_chat_id"),
+  jellyfinServerUrl: text("jellyfin_server_url"),
+  jellyfinApiKey: text("jellyfin_api_key"),
+  jellyfinLibraryId: text("jellyfin_library_id"),
+  createdAt: text("created_at"),
+  updatedAt: text("updated_at"),
 });
 
 // Download jobs
-export const downloadJobs = pgTable("download_jobs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  youtubeUrl: varchar("youtube_url").notNull(),
-  videoTitle: varchar("video_title"),
-  videoThumbnail: varchar("video_thumbnail"),
-  format: varchar("format").notNull(), // 'audio' or 'video'
-  quality: varchar("quality"), // '360p', '720p', '1080p', etc.
-  status: varchar("status").notNull().default("queued"), // 'queued', 'downloading', 'converting', 'uploading', 'completed', 'failed'
+export const downloadJobs = sqliteTable("download_jobs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  youtubeUrl: text("youtube_url").notNull(),
+  videoTitle: text("video_title"),
+  videoThumbnail: text("video_thumbnail"),
+  format: text("format").notNull(),
+  quality: text("quality"),
+  status: text("status").notNull().default("queued"),
   progress: integer("progress").default(0),
   errorMessage: text("error_message"),
-  filePath: varchar("file_path"),
+  filePath: text("file_path"),
   fileSize: integer("file_size"),
   uploadedToNas: integer("uploaded_to_nas").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: text("created_at"),
+  updatedAt: text("updated_at"),
 });
 
 // Insert schemas
