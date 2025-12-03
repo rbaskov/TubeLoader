@@ -9,8 +9,9 @@ import {
   type DownloadJob,
   type InsertDownloadJob,
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { db, sqlite } from "./db";
+import { eq, desc, and } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -48,40 +49,60 @@ export class DatabaseStorage implements IStorage {
     lastName?: string,
     isAdmin: number = 0
   ): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        username,
-        passwordHash,
-        firstName: firstName || null,
-        lastName: lastName || null,
-        isAdmin,
-      })
-      .returning();
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    
+    await db.insert(users).values({
+      id,
+      username,
+      passwordHash,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      isAdmin,
+      createdAt: now,
+      updatedAt: now,
+    });
+    
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
+    const now = new Date().toISOString();
+    const id = userData.id || randomUUID();
+    
+    const existing = await this.getUser(id);
+    
+    if (existing) {
+      await db
+        .update(users)
+        .set({
           ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+          updatedAt: now,
+        })
+        .where(eq(users.id, id));
+    } else {
+      await db.insert(users).values({
+        ...userData,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async updateUserPreferences(id: string, language: string, theme: string): Promise<User | undefined> {
-    const [user] = await db
+    const now = new Date().toISOString();
+    
+    await db
       .update(users)
-      .set({ language, theme, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
+      .set({ language, theme, updatedAt: now })
+      .where(eq(users.id, id));
+    
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
@@ -94,29 +115,43 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUserSettings(settingsData: InsertUserSettings): Promise<UserSettings> {
+    const now = new Date().toISOString();
     const existing = await this.getUserSettings(settingsData.userId);
     
     if (existing) {
-      const [settings] = await db
+      await db
         .update(userSettings)
-        .set({ ...settingsData, updatedAt: new Date() })
-        .where(eq(userSettings.userId, settingsData.userId))
-        .returning();
-      return settings;
+        .set({ ...settingsData, updatedAt: now })
+        .where(eq(userSettings.userId, settingsData.userId));
     } else {
-      const [settings] = await db
-        .insert(userSettings)
-        .values(settingsData)
-        .returning();
-      return settings;
+      const id = randomUUID();
+      await db.insert(userSettings).values({
+        ...settingsData,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      });
     }
+    
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, settingsData.userId));
+    return settings;
   }
 
   async createDownloadJob(jobData: InsertDownloadJob): Promise<DownloadJob> {
-    const [job] = await db
-      .insert(downloadJobs)
-      .values(jobData)
-      .returning();
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    
+    await db.insert(downloadJobs).values({
+      ...jobData,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    });
+    
+    const [job] = await db.select().from(downloadJobs).where(eq(downloadJobs.id, id));
     return job;
   }
 
@@ -137,11 +172,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateDownloadJob(id: string, updates: Partial<DownloadJob>): Promise<DownloadJob | undefined> {
-    const [job] = await db
+    const now = new Date().toISOString();
+    
+    await db
       .update(downloadJobs)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(downloadJobs.id, id))
-      .returning();
+      .set({ ...updates, updatedAt: now })
+      .where(eq(downloadJobs.id, id));
+    
+    const [job] = await db.select().from(downloadJobs).where(eq(downloadJobs.id, id));
     return job;
   }
 
@@ -150,7 +188,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUploadedToNasJobIds(userId: string): Promise<string[]> {
-    const { and } = await import("drizzle-orm");
     const jobs = await db
       .select({ id: downloadJobs.id })
       .from(downloadJobs)
