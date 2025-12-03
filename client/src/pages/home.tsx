@@ -19,6 +19,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { useAuth } from "@/hooks/useAuth";
 import type { DownloadJob } from "@shared/schema";
 
 const qualityOptions = ["360p", "480p", "720p", "1080p", "1440p", "2160p"];
@@ -26,6 +28,8 @@ const qualityOptions = ["360p", "480p", "720p", "1080p", "1440p", "2160p"];
 export default function Home() {
   const { t } = useApp();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { updateTrigger } = useWebSocket(user?.id);
   const [url, setUrl] = useState("");
   const [format, setFormat] = useState<"audio" | "video">("video");
   const [quality, setQuality] = useState("720p");
@@ -197,7 +201,7 @@ export default function Home() {
           ) : displayJobs.length > 0 ? (
             <div className="space-y-3">
               {displayJobs.map((job) => (
-                <JobCard key={job.id} job={job} compact />
+                <JobCard key={job.id} job={job} compact updateTrigger={updateTrigger} />
               ))}
             </div>
           ) : (

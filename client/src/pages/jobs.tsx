@@ -5,12 +5,14 @@ import { JobCard } from "@/components/job-card";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import type { DownloadJob } from "@shared/schema";
 
 export default function Jobs() {
   const { t } = useApp();
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { updateTrigger } = useWebSocket(user?.id);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -57,7 +59,7 @@ export default function Jobs() {
         ) : jobs && jobs.length > 0 ? (
           <div className="space-y-4">
             {jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
+              <JobCard key={job.id} job={job} updateTrigger={updateTrigger} />
             ))}
           </div>
         ) : (

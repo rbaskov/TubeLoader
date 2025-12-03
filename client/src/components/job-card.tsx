@@ -31,9 +31,10 @@ import { jobProgressInfo } from "@/hooks/useWebSocket";
 interface JobCardProps {
   job: DownloadJob;
   compact?: boolean;
+  updateTrigger?: number;
 }
 
-export function JobCard({ job, compact = false }: JobCardProps) {
+export function JobCard({ job, compact = false, updateTrigger }: JobCardProps) {
   const { t, language } = useApp();
   const { toast } = useToast();
   const locale = language === "ru" ? ru : enUS;
