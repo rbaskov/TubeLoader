@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./auth";
 import { downloadRequestSchema, updateSettingsSchema, updatePreferencesSchema, loginSchema, registerSchema } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -142,7 +142,7 @@ export async function registerRoutes(
 
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.session?.userId || req.user?.claims?.sub;
+      const userId = req.session?.userId;
       if (!userId) {
         res.status(401).json({ message: "Unauthorized" });
         return;
@@ -159,12 +159,8 @@ export async function registerRoutes(
     }
   });
 
-  const getAuthUserId = (req: any): string | null => {
-    return req.session?.userId || req.user?.claims?.sub || null;
-  };
-
   const requireAuth = (req: any, res: any, next: any) => {
-    const userId = getAuthUserId(req);
+    const userId = req.session?.userId;
     if (!userId) {
       res.status(401).json({ message: "Unauthorized" });
       return;

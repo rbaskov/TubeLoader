@@ -5,12 +5,12 @@ A full-featured YouTube video downloader web application with background job pro
 
 ## Current State
 - **Status:** MVP Complete
-- **Auth:** Replit Auth (Google, GitHub, email/password)
+- **Auth:** Local username/password (single admin user)
 - **Database:** SQLite (local file: data/youtube-downloader.db)
 - **Real-time:** WebSocket for job progress updates
 
 ## Features
-1. **User Authentication** - Dual auth system: Replit Auth (Google, GitHub) + local username/password
+1. **User Authentication** - Local username/password authentication
 2. **YouTube Download** - Download videos/audio with quality selection
 3. **Proxy Support** - HTTP/HTTPS/SOCKS4/SOCKS5 proxy for YouTube downloads
 4. **Background Jobs** - Queue system with real-time progress tracking (speed + ETA)
@@ -23,7 +23,7 @@ A full-featured YouTube video downloader web application with background job pro
 ## Tech Stack
 - **Frontend:** React, TypeScript, TailwindCSS, Shadcn UI, Wouter
 - **Backend:** Express.js, Node.js, SQLite (better-sqlite3), Drizzle ORM
-- **Auth:** Replit OpenID Connect (passport.js) + Local auth
+- **Auth:** Local session-based authentication
 - **Real-time:** WebSocket (ws)
 
 ## Project Structure
@@ -39,10 +39,9 @@ server/
   db.ts             # SQLite database connection
   storage.ts        # Data access layer
   routes.ts         # API endpoints
-  replitAuth.ts     # Authentication setup
+  auth.ts           # Session-based authentication
   sqliteSessionStore.ts  # Custom SQLite session store
   youtube.ts        # YouTube download logic (yt-dlp)
-  migrate-to-sqlite.ts  # Migration script from PostgreSQL
 data/
   youtube-downloader.db  # SQLite database file
 shared/
@@ -65,10 +64,14 @@ shared/
 - `DELETE /api/jobs/:id` - Delete job
 
 ## Database Tables (SQLite)
-- `users` - User accounts (local auth + Replit Auth)
+- `users` - User accounts (local auth)
 - `sessions` - Session storage (custom SQLite session store)
 - `user_settings` - Synology, Telegram, Jellyfin, Proxy settings
 - `download_jobs` - Download job queue
+
+## Admin User
+- **Username:** admin
+- **Password:** v3FnMSAWteQS
 
 ## Development
 ```bash
@@ -82,6 +85,11 @@ npm run build        # Build for production
 - Settings: Stored in database per user
 
 ## Recent Changes
+- **2025-12-03:** Removed Replit Auth (OIDC)
+  - Removed openid-client, passport-related OIDC code
+  - Only local username/password authentication remains
+  - Single admin user with predefined password
+  - Simplified auth.ts (session-only, no OIDC)
 - **2025-12-03:** Migrated from PostgreSQL to SQLite
   - Database now stored locally at `data/youtube-downloader.db`
   - All data migrated (users, settings, jobs, sessions)
@@ -122,7 +130,6 @@ npm run build        # Build for production
   - Simplified settings UI (only endpoint URL needed)
   - Tested with real server: 1MB upload successful
 - Initial MVP implementation
-- Added dual authentication: Replit Auth + local username/password
 - Created master admin user (username: admin)
 - Added WebSocket for real-time job updates
 - Added i18n support (EN/RU)
@@ -131,7 +138,7 @@ npm run build        # Build for production
 
 ## Architecture Decisions
 - Single-page application with client-side routing (wouter)
-- Dual authentication: Both OIDC (Replit Auth) and local username/password
+- Local username/password authentication only
 - SQLite database for simplicity and portability (no external dependencies)
 - Sidebar navigation for authenticated users
 - Landing page for unauthenticated users
