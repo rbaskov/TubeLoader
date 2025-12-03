@@ -112,9 +112,10 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     <FormLabel>{t.auth.username}</FormLabel>
                     <FormControl>
                       <Input 
+                        {...field}
                         placeholder={t.auth.usernamePlaceholder} 
                         data-testid="input-username"
-                        {...field} 
+                        autoComplete="username"
                       />
                     </FormControl>
                     <FormMessage />
@@ -129,10 +130,11 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     <FormLabel>{t.auth.password}</FormLabel>
                     <FormControl>
                       <Input 
+                        {...field}
                         type="password" 
                         placeholder={t.auth.passwordPlaceholder}
                         data-testid="input-password"
-                        {...field} 
+                        autoComplete="current-password"
                       />
                     </FormControl>
                     <FormMessage />
@@ -160,9 +162,10 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     <FormLabel>{t.auth.username}</FormLabel>
                     <FormControl>
                       <Input 
+                        {...field}
                         placeholder={t.auth.usernamePlaceholder}
                         data-testid="input-register-username"
-                        {...field} 
+                        autoComplete="username"
                       />
                     </FormControl>
                     <FormMessage />
@@ -177,10 +180,11 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                     <FormLabel>{t.auth.password}</FormLabel>
                     <FormControl>
                       <Input 
+                        {...field}
                         type="password" 
                         placeholder={t.auth.passwordPlaceholder}
                         data-testid="input-register-password"
-                        {...field} 
+                        autoComplete="new-password"
                       />
                     </FormControl>
                     <FormMessage />
@@ -196,9 +200,10 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                       <FormLabel>{t.auth.firstName}</FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           placeholder={t.auth.firstNamePlaceholder}
                           data-testid="input-register-firstname"
-                          {...field} 
+                          autoComplete="given-name"
                         />
                       </FormControl>
                       <FormMessage />
@@ -213,9 +218,10 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                       <FormLabel>{t.auth.lastName}</FormLabel>
                       <FormControl>
                         <Input 
+                          {...field}
                           placeholder={t.auth.lastNamePlaceholder}
                           data-testid="input-register-lastname"
-                          {...field} 
+                          autoComplete="family-name"
                         />
                       </FormControl>
                       <FormMessage />
