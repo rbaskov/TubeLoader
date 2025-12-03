@@ -6,7 +6,7 @@ A full-featured YouTube video downloader web application with background job pro
 ## Current State
 - **Status:** MVP Complete
 - **Auth:** Replit Auth (Google, GitHub, email/password)
-- **Database:** PostgreSQL with Drizzle ORM
+- **Database:** SQLite (local file: data/youtube-downloader.db)
 - **Real-time:** WebSocket for job progress updates
 
 ## Features
@@ -22,8 +22,8 @@ A full-featured YouTube video downloader web application with background job pro
 
 ## Tech Stack
 - **Frontend:** React, TypeScript, TailwindCSS, Shadcn UI, Wouter
-- **Backend:** Express.js, Node.js, PostgreSQL, Drizzle ORM
-- **Auth:** Replit OpenID Connect (passport.js)
+- **Backend:** Express.js, Node.js, SQLite (better-sqlite3), Drizzle ORM
+- **Auth:** Replit OpenID Connect (passport.js) + Local auth
 - **Real-time:** WebSocket (ws)
 
 ## Project Structure
@@ -36,12 +36,17 @@ client/
     lib/            # Utilities (queryClient, i18n)
     pages/          # Route pages (home, jobs, settings, landing)
 server/
-  db.ts            # Database connection
-  storage.ts       # Data access layer
-  routes.ts        # API endpoints
-  replitAuth.ts    # Authentication setup
+  db.ts             # SQLite database connection
+  storage.ts        # Data access layer
+  routes.ts         # API endpoints
+  replitAuth.ts     # Authentication setup
+  sqliteSessionStore.ts  # Custom SQLite session store
+  youtube.ts        # YouTube download logic (yt-dlp)
+  migrate-to-sqlite.ts  # Migration script from PostgreSQL
+data/
+  youtube-downloader.db  # SQLite database file
 shared/
-  schema.ts        # Database schema & types
+  schema.ts         # Database schema & types (SQLite)
 ```
 
 ## API Endpoints
@@ -59,16 +64,15 @@ shared/
 - `POST /api/jobs/:id/retry` - Retry failed job
 - `DELETE /api/jobs/:id` - Delete job
 
-## Database Tables
-- `users` - User accounts (Replit Auth)
-- `sessions` - Session storage
-- `user_settings` - Synology, Telegram, Jellyfin settings
+## Database Tables (SQLite)
+- `users` - User accounts (local auth + Replit Auth)
+- `sessions` - Session storage (custom SQLite session store)
+- `user_settings` - Synology, Telegram, Jellyfin, Proxy settings
 - `download_jobs` - Download job queue
 
 ## Development
 ```bash
 npm run dev          # Start development server
-npm run db:push      # Push schema to database
 npm run build        # Build for production
 ```
 
@@ -78,6 +82,11 @@ npm run build        # Build for production
 - Settings: Stored in database per user
 
 ## Recent Changes
+- **2025-12-03:** Migrated from PostgreSQL to SQLite
+  - Database now stored locally at `data/youtube-downloader.db`
+  - All data migrated (users, settings, jobs, sessions)
+  - Custom SQLite session store for express-session
+  - No external database dependency required
 - **2025-12-03:** Auto-cleanup local files after NAS upload
   - Downloaded files are automatically deleted from /downloads after successful upload to NAS
   - Applies to both auto-upload and manual "Send to NAS" button
@@ -123,12 +132,14 @@ npm run build        # Build for production
 ## Architecture Decisions
 - Single-page application with client-side routing (wouter)
 - Dual authentication: Both OIDC (Replit Auth) and local username/password
+- SQLite database for simplicity and portability (no external dependencies)
 - Sidebar navigation for authenticated users
 - Landing page for unauthenticated users
 - Real-time updates via WebSocket
 - TUS 1.0.0 protocol for resumable uploads (no authentication)
 - Real YouTube download using yt-dlp (installed via Nix)
 - Downloaded files stored in `/downloads` directory
+- Auto-cleanup of local files after successful NAS upload
 
 ## External Integrations
 ### TUS Upload Server
