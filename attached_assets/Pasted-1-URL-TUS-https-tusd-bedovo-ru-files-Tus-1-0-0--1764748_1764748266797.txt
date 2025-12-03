@@ -1,0 +1,155 @@
+1. Общая информация
+
+Базовый URL TUS-сервера:
+
+https://tusd.bedovo.ru/files/
+
+
+Протокол: Tus 1.0.0
+ (resumable uploads over HTTP)
+
+Аутентификация:
+Нет. Никакого логина/пароля, токенов и т.п. — сервер доступен по HTTPS без авторизации.
+
+Ограничение размера файла:
+Файлы до 10 ГБ.
+
+Назначение:
+Каждый успешно загруженный файл сохраняется на стороне получателя в директорию:
+
+/volume1/media/youtube
+
+
+(для внешнего сервиса это просто “хранилище видео”, путь ему знать не нужно).
+
+2. Поток загрузки (Tus 1.0)
+
+Последовательность действий стандартная для Tus:
+
+POST на /files/ — создать загрузку (инициализация).
+
+Сервер возвращает Location: /files/<upload_id>.
+
+PATCH на выданный Location — отправка содержимого файла (одним куском или частями).
+
+(опционально) HEAD на Location — узнать текущий Upload-Offset при докачке.
+
+3. Инициализация загрузки (POST)
+
+Запрос:
+
+POST https://tusd.bedovo.ru/files/ HTTP/1.1
+Tus-Resumable: 1.0.0
+Upload-Length: <file_size_bytes>
+Upload-Metadata: filename <base64(filename)>
+
+
+Tus-Resumable: 1.0.0 — обязателен.
+
+Upload-Length — размер файла в байтах (целое число).
+
+Upload-Metadata — список пар key base64(value), разделённых запятой.
+Минимум: filename — имя файла (любой UTF-8, в header передаётся в base64).
+
+Пример (curl, Linux):
+
+FILE="video.mp4"
+SIZE=$(stat -c%s "$FILE")
+
+curl -i -X POST \
+  -H "Tus-Resumable: 1.0.0" \
+  -H "Upload-Length: $SIZE" \
+  -H "Upload-Metadata: filename $(echo -n "$FILE" | base64)" \
+  https://tusd.bedovo.ru/files/
+
+
+Ожидаемый ответ:
+
+HTTP/1.1 201 Created
+Location: /files/<upload_id>
+Tus-Resumable: 1.0.0
+Upload-Offset: 0
+...
+
+
+Клиент должен забрать значение Location (например, /files/8b3d9dd2d0e26c4bbf7a0e0ddd8f8824)
+и использовать его для последующих запросов PATCH и HEAD.
+
+4. Передача содержимого файла (PATCH)
+
+Можно отправить файл целиком одним запросом, либо частями (resumable).
+
+Вариант А. Один PATCH (маленькие/средние файлы)
+UPLOAD_ID="8b3d9dd2d0e26c4bbf7a0e0ddd8f8824"
+
+curl -X PATCH \
+  -H "Tus-Resumable: 1.0.0" \
+  -H "Content-Type: application/offset+octet-stream" \
+  -H "Upload-Offset: 0" \
+  --data-binary @"$FILE" \
+  https://tusd.bedovo.ru/files/$UPLOAD_ID
+
+
+Заголовки:
+
+Tus-Resumable: 1.0.0 — обязателен.
+
+Content-Type: application/offset+octet-stream — по протоколу Tus.
+
+Upload-Offset — смещение в байтах, с которого отправляется текущий chunk.
+Для первой (и единственной) отправки это 0.
+
+Если всё успешно, сервер вернёт 204 No Content с обновлённым Upload-Offset, равным размеру файла.
+
+Вариант B. Загрузка по частям (resumable upload)
+
+При обрывах соединения можно использовать стандартный Tus-флоу:
+
+HEAD на Location:
+
+curl -i \
+  -H "Tus-Resumable: 1.0.0" \
+  https://tusd.bedovo.ru/files/$UPLOAD_ID
+
+
+В ответ придёт:
+
+Upload-Offset: <current_offset>
+Upload-Length: <file_size>
+
+
+Следующий PATCH начинается с Upload-Offset, равного этому current_offset.
+
+Tus-клиенты (например, tus-js-client, tus-python-client и т.п.) уже умеют это автоматически, достаточно указать endpoint:
+
+https://tusd.bedovo.ru/files/
+
+5. Особенности / ограничения
+
+Загрузка идёт по HTTPS, домен tusd.bedovo.ru имеет корректный TLS-сертификат.
+
+Никакой HTTP-аутентификации (Basic/Digest/Bearer) не требуется.
+
+Разработчики могут использовать готовые библиотеки Tus:
+
+JS: tus-js-client
+
+Python: tuspy
+
+Go: tus-go-client
+
+и др. — с endpoint’ом https://tusd.bedovo.ru/files/.
+
+6. Краткое резюме для разработчиков
+
+Чтобы загрузить видеофайл (до 10 ГБ) на нашу сторону:
+
+Сделайте POST на https://tusd.bedovo.ru/files/ с заголовками
+Tus-Resumable: 1.0.0, Upload-Length, Upload-Metadata: filename <base64>.
+
+Из ответа возьмите заголовок Location — это URL загрузки.
+
+Отправьте содержимое файла через один или несколько PATCH на этот Location,
+с Tus-Resumable: 1.0.0, Content-Type: application/offset+octet-stream, Upload-Offset.
+
+Авторизация не требуется, только HTTPS.
