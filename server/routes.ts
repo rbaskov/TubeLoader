@@ -195,6 +195,10 @@ export async function registerRoutes(
         settingsData.autoUploadToNas = validatedData.autoUploadToNas ? 1 : 0;
       }
       
+      if (typeof validatedData.proxyEnabled === 'boolean') {
+        settingsData.proxyEnabled = validatedData.proxyEnabled ? 1 : 0;
+      }
+      
       // Save YouTube cookies to file if provided
       if (validatedData.youtubeCookies && validatedData.youtubeCookies.trim()) {
         saveCookies(validatedData.youtubeCookies);
